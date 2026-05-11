@@ -435,37 +435,42 @@ function fetchAndRenderReport(c){
     return;
   }
   var symbol = c.code+'.T';
-  var url = 'https://query1.finance.yahoo.com/v8/finance/chart/'+symbol+'?interval=1d&range=3mo';
-  var proxy = 'https://api.allorigins.win/get?url='+encodeURIComponent(url);
-  fetch(proxy)
-    .then(function(r){ return r.json(); })
-    .then(function(j){
-      var data = JSON.parse(j.contents);
-      var result = data.chart && data.chart.result && data.chart.result[0];
-      if(!result) throw new Error('データなし');
-      var closes = result.indicators.quote[0].close;
-      var meta = result.meta;
-      var prices = closes.filter(function(v){ return v!=null; });
-      var current = meta.regularMarketPrice || prices[prices.length-1];
-      var prev = meta.chartPreviousClose || prices[prices.length-2];
-      function sma(arr,n){ if(arr.length<n) return null; return arr.slice(-n).reduce(function(s,v){return s+v;},0)/n; }
-      var d = {
-        current: current,
-        prev: prev,
-        change: current-prev,
-        changePct: ((current-prev)/prev*100),
-        ma5:  sma(prices,5),
-        ma25: sma(prices,25),
-        ma75: sma(prices,75),
-        high52: meta.fiftyTwoWeekHigh || Math.max.apply(null,prices),
-        low52:  meta.fiftyTwoWeekLow  || Math.min.apply(null,prices),
-      };
-      PRICE_CACHE[c.code] = d;
-      renderEntryReport(c, d);
-    })
-    .catch(function(e){
-      renderEntryReport(c, null);
-    });
+  var baseUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/'+symbol+'?interval=1d&range=3mo';
+  var proxies = [
+    'https://corsproxy.io/?'+encodeURIComponent(baseUrl),
+    'https://api.allorigins.win/get?url='+encodeURIComponent(baseUrl),
+    'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(baseUrl),
+  ];
+
+  function tryProxy(idx){
+    if(idx >= proxies.length){ renderEntryReport(c, null); return; }
+    fetch(proxies[idx])
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        // corsproxy.io returns direct JSON, allorigins wraps in .contents
+        var data = j.contents ? JSON.parse(j.contents) : j;
+        var result = data.chart && data.chart.result && data.chart.result[0];
+        if(!result) throw new Error('no result');
+        var closes = result.indicators.quote[0].close;
+        var meta = result.meta;
+        var prices = closes.filter(function(v){ return v!=null; });
+        var current = meta.regularMarketPrice || prices[prices.length-1];
+        var prev = meta.chartPreviousClose || prices[prices.length-2];
+        function sma(arr,n){ if(arr.length<n) return null; return arr.slice(-n).reduce(function(s,v){return s+v;},0)/n; }
+        var d = {
+          current: current, prev: prev,
+          change: current-prev,
+          changePct: ((current-prev)/prev*100),
+          ma5: sma(prices,5), ma25: sma(prices,25), ma75: sma(prices,75),
+          high52: meta.fiftyTwoWeekHigh || Math.max.apply(null,prices),
+          low52:  meta.fiftyTwoWeekLow  || Math.min.apply(null,prices),
+        };
+        PRICE_CACHE[c.code] = d;
+        renderEntryReport(c, d);
+      })
+      .catch(function(){ tryProxy(idx+1); });
+  }
+  tryProxy(0);
 }
 
 // ── ENTRY REPORT ──
