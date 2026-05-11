@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日本株スクリーナー × テクニカル分析</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+–bg: #060810;
+–surface: #0d1220;
+–card: #111827;
+–card2: #151e30;
+–border: #1e2d45;
+–accent: #00e5ff;
+–green: #00e676;
+–red: #ff3d5a;
+–yellow: #ffd740;
+–orange: #ff9100;
+–purple: #b388ff;
+–text: #e8edf5;
+–muted: #4a6080;
+}
+
+- { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Noto Sans JP’, sans-serif;
+min-height: 100vh;
+}
+
+body::before {
+content:’’;
+position:fixed; inset:0;
+background-image:
+linear-gradient(rgba(0,229,255,0.025) 1px, transparent 1px),
+linear-gradient(90deg, rgba(0,229,255,0.025) 1px, transparent 1px);
+background-size: 44px 44px;
+pointer-events:none; z-index:0;
+}
+
+/* ── HEADER ── */
+.app-header {
+position: sticky; top:0; z-index:100;
+background: rgba(6,8,16,0.92);
+backdrop-filter: blur(12px);
+border-bottom: 1px solid var(–border);
+padding: 12px 16px;
+display: flex; align-items: center; gap: 12px;
+}
+.app-title { font-size:15px; font-weight:700; color:var(–accent); }
+.app-sub   { font-size:11px; color:var(–muted); }
+
+.tab-bar {
+display:flex; gap:4px; margin-left:auto;
+}
+.tab {
+background:transparent; border:1px solid var(–border);
+color:var(–muted); border-radius:6px; padding:5px 12px;
+font-size:12px; font-family:‘Noto Sans JP’,sans-serif;
+cursor:pointer; transition:all 0.15s;
+}
+.tab.active { background:var(–accent); color:#000; border-color:var(–accent); font-weight:700; }
+.tab:hover:not(.active) { border-color:var(–accent); color:var(–accent); }
+
+/* ── MAIN ── */
+.main { max-width:960px; margin:0 auto; padding:20px 14px; position:relative; z-index:1; }
+
+/* ── SCREENER PANEL ── */
+.filter-bar {
+background:var(–card); border:1px solid var(–border);
+border-radius:12px; padding:16px; margin-bottom:18px;
+}
+.filter-title { font-size:11px; color:var(–muted); letter-spacing:2px; margin-bottom:12px; }
+.filter-grid  { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; }
+
+.filter-item label { display:block; font-size:10px; color:var(–muted); margin-bottom:4px; }
+.filter-item select, .filter-item input {
+width:100%; background:var(–surface); border:1px solid var(–border);
+border-radius:6px; padding:6px 8px; color:var(–text);
+font-size:12px; font-family:‘Noto Sans JP’,sans-serif; outline:none;
+}
+.filter-item select:focus, .filter-item input:focus { border-color:var(–accent); }
+
+.filter-actions { display:flex; gap:8px; margin-top:12px; }
+.btn {
+padding:7px 16px; border-radius:7px; font-size:12px;
+font-family:‘Noto Sans JP’,sans-serif; font-weight:700;
+cursor:pointer; transition:all 0.15s; border:none;
+}
+.btn-primary { background:var(–accent); color:#000; }
+.btn-primary:hover { background:#33eaff; }
+.btn-outline { background:transparent; border:1px solid var(–border); color:var(–muted); }
+.btn-outline:hover { border-color:var(–accent); color:var(–accent); }
+
+/* result count */
+.result-meta {
+display:flex; justify-content:space-between; align-items:center;
+margin-bottom:12px; font-size:12px; color:var(–muted);
+}
+.result-count { color:var(–accent); font-weight:700; font-size:14px; }
+
+/* ── STOCK CARDS (Screener) ── */
+.cards-grid {
+display:grid;
+grid-template-columns: repeat(auto-fill, minmax(280px,1fr));
+gap:12px;
+}
+
+.scard {
+background:var(–card); border:1px solid var(–border);
+border-radius:12px; padding:16px; cursor:pointer;
+transition:all 0.2s; position:relative; overflow:hidden;
+}
+.scard::before {
+content:’’; position:absolute; top:0; left:0; right:0; height:3px;
+opacity:0; transition:opacity 0.2s;
+}
+.scard:hover { border-color:var(–accent); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,229,255,0.08); }
+.scard:hover::before { opacity:1; }
+
+.scard-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+.scard-name { font-size:15px; font-weight:700; }
+.scard-code { font-family:‘JetBrains Mono’,monospace; font-size:11px; color:var(–muted); margin-top:2px; }
+
+.status-badge {
+padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700;
+white-space:nowrap;
+}
+
+.scard-sectors { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px; }
+.sector-tag {
+padding:2px 7px; border-radius:4px; font-size:9px; font-weight:600;
+border:1px solid;
+}
+
+.scard-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:10px; }
+.metric { text-align:center; }
+.metric-label { font-size:9px; color:var(–muted); }
+.metric-val { font-size:13px; font-weight:700; font-family:‘JetBrains Mono’,monospace; }
+
+.score-row { margin-bottom:10px; }
+.score-label { font-size:10px; color:var(–muted); margin-bottom:3px; }
+.score-track {
+height:5px; background:var(–surface); border-radius:3px; overflow:hidden;
+}
+.score-fill { height:100%; border-radius:3px; transition:width 0.5s; }
+
+.scard-actions { display:flex; gap:6px; margin-top:10px; }
+.btn-chart {
+flex:1; padding:7px; border-radius:6px; font-size:11px; font-weight:700;
+background: rgba(0,229,255,0.12); border:1px solid rgba(0,229,255,0.3);
+color:var(–accent); cursor:pointer; font-family:‘Noto Sans JP’,sans-serif;
+transition:all 0.15s;
+}
+.btn-chart:hover { background:rgba(0,229,255,0.2); }
+.btn-strategy {
+flex:1; padding:7px; border-radius:6px; font-size:11px; font-weight:700;
+background: rgba(0,230,118,0.12); border:1px solid rgba(0,230,118,0.3);
+color:var(–green); cursor:pointer; font-family:‘Noto Sans JP’,sans-serif;
+transition:all 0.15s;
+}
+.btn-strategy:hover { background:rgba(0,230,118,0.2); }
+
+/* ── MODAL ── */
+.modal-overlay {
+position:fixed; inset:0; background:rgba(0,0,0,0.75);
+z-index:200; display:none; align-items:flex-start;
+justify-content:center; padding:20px; overflow-y:auto;
+}
+.modal-overlay.open { display:flex; }
+
+.modal {
+background:var(–card); border:1px solid var(–border);
+border-radius:16px; width:100%; max-width:680px;
+margin:auto; overflow:hidden;
+animation: modalIn 0.25s ease;
+}
+@keyframes modalIn {
+from { opacity:0; transform:translateY(20px) scale(0.97); }
+to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.modal-header {
+padding:18px 20px; border-bottom:1px solid var(–border);
+display:flex; justify-content:space-between; align-items:center;
+}
+.modal-title { font-size:17px; font-weight:700; }
+.modal-code  { font-family:‘JetBrains Mono’,monospace; font-size:11px; color:var(–muted); }
+.modal-close {
+background:none; border:none; color:var(–muted);
+font-size:20px; cursor:pointer; padding:4px;
+transition:color 0.15s;
+}
+.modal-close:hover { color:var(–text); }
+
+.modal-tabs {
+display:flex; border-bottom:1px solid var(–border);
+}
+.modal-tab {
+flex:1; padding:12px; text-align:center; font-size:12px; font-weight:700;
+cursor:pointer; color:var(–muted); transition:all 0.15s;
+border:none; background:none; font-family:‘Noto Sans JP’,sans-serif;
+border-bottom:2px solid transparent;
+}
+.modal-tab.active { color:var(–accent); border-bottom-color:var(–accent); }
+
+.modal-body { padding:20px; }
+
+/* chart area */
+.chart-area canvas { width:100%; height:160px; display:block; }
+.ma-row {
+display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin:12px 0;
+}
+.ma-box {
+background:var(–surface); border-radius:8px; padding:10px 12px;
+display:flex; justify-content:space-between; align-items:center;
+}
+.ma-box-label { font-size:10px; color:var(–muted); }
+.ma-box-val   { font-family:‘JetBrains Mono’,monospace; font-size:14px; font-weight:600; }
+.ma-box-diff  { font-size:10px; margin-top:2px; text-align:right; }
+
+/* strategy */
+.strategy-section { margin-bottom:18px; }
+.strategy-section h3 {
+font-size:12px; letter-spacing:2px; color:var(–muted);
+margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(–border);
+}
+
+.signal-badge {
+display:inline-flex; align-items:center; gap:6px;
+padding:8px 16px; border-radius:20px; font-size:13px;
+font-weight:700; margin-bottom:10px;
+}
+
+.entry-table { width:100%; border-collapse:collapse; font-size:13px; }
+.entry-table th {
+text-align:left; padding:6px 10px;
+background:var(–surface); color:var(–muted);
+font-size:10px; letter-spacing:1px; font-weight:500;
+}
+.entry-table td { padding:9px 10px; border-bottom:1px solid var(–border); }
+.entry-table tr:last-child td { border-bottom:none; }
+
+.etag {
+display:inline-block; padding:2px 8px;
+border-radius:4px; font-size:11px; font-weight:700;
+}
+.etag-buy  { background:rgba(0,229,255,0.15); color:var(–accent); }
+.etag-sell { background:rgba(0,230,118,0.15); color:var(–green); }
+.etag-stop { background:rgba(255,61,90,0.15); color:var(–red); }
+.etag-wait { background:rgba(255,215,64,0.15); color:var(–yellow); }
+
+.sell-reasons { display:flex; flex-direction:column; gap:6px; }
+.sell-reason {
+background:var(–surface); border-radius:6px; padding:10px 12px;
+font-size:12px; display:flex; gap:10px; align-items:flex-start;
+}
+.sell-icon { font-size:16px; line-height:1; flex-shrink:0; }
+
+.hl-wrap { margin-top:12px; }
+.hl-bar-bg {
+height:8px; background:var(–surface); border-radius:4px;
+position:relative; overflow:visible; margin:8px 0;
+}
+.hl-bar-fill {
+height:100%; border-radius:4px;
+background:linear-gradient(90deg,var(–accent),var(–green));
+transition:width 1s ease;
+}
+.hl-dot-marker {
+position:absolute; top:50%; transform:translate(-50%,-50%);
+width:14px; height:14px; border-radius:50%;
+background:var(–yellow); border:2px solid var(–bg);
+z-index:2;
+}
+.hl-labels { display:flex; justify-content:space-between; font-size:10px; color:var(–muted); }
+
+/* loading spinner */
+.spin-wrap { text-align:center; padding:30px; color:var(–muted); font-size:12px; }
+.spinner {
+width:28px; height:28px; border:2px solid var(–border);
+border-top-color:var(–accent); border-radius:50%;
+animation:spin 0.8s linear infinite; margin:0 auto 10px;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.err-box {
+background:rgba(255,61,90,0.1); border:1px solid rgba(255,61,90,0.3);
+border-radius:8px; padding:12px 14px; font-size:12px; color:#ff6b8a;
+margin:10px 0;
+}
+
+/* HL position text */
+.pos-text { text-align:center; font-size:11px; color:var(–accent); margin-top:4px; }
+
+/* sector colors */
+.sec-DC     { color:#00d4ff; border-color:#00d4ff44; background:#00d4ff11; }
+.sec-半導体  { color:#b388ff; border-color:#b388ff44; background:#b388ff11; }
+.sec-防衛    { color:#ff9100; border-color:#ff910044; background:#ff910011; }
+.sec-電力    { color:#00e676; border-color:#00e67644; background:#00e67611; }
+.sec-素材    { color:#ffd740; border-color:#ffd74044; background:#ffd74011; }
+
+/* status colors */
+.st-未注目 { background:rgba(0,229,255,0.15); color:var(–accent); }
+.st-出遅れ { background:rgba(0,230,118,0.15); color:var(–green); }
+.st-注目済 { background:rgba(255,145,0,0.15); color:var(–orange); }
+.st-高騰済 { background:rgba(255,61,90,0.15); color:var(–red); }
+
+/* fund info */
+.fund-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+.fund-cell {
+background:var(–surface); border-radius:8px; padding:10px;
+text-align:center;
+}
+.fund-cell-label { font-size:10px; color:var(–muted); margin-bottom:4px; }
+.fund-cell-val   { font-size:15px; font-weight:700; font-family:‘JetBrains Mono’,monospace; }
+
+/* note */
+.note-box {
+background:var(–surface); border-radius:8px; padding:12px;
+font-size:12px; color:#99aabb; line-height:1.7;
+border-left:3px solid var(–border); margin-bottom:14px;
+}
+
+@media(max-width:500px){
+.cards-grid { grid-template-columns:1fr; }
+.filter-grid { grid-template-columns:repeat(2,1fr); }
+.ma-row { grid-template-columns:1fr; }
+.fund-grid { grid-template-columns:repeat(2,1fr); }
+}
+</style>
+
+</head>
+<body>
+
+<div class="app-header">
+  <div>
+    <div class="app-title">📊 Japan Stock Screener</div>
+    <div class="app-sub">スクリーニング × テクニカル × 売買戦略</div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchView('screener',this)">スクリーナー</button>
+    <button class="tab" onclick="switchView('watchlist',this)">ウォッチリスト</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- FILTER BAR -->
+
+  <div class="filter-bar" id="filterBar">
+    <div class="filter-title">■ スクリーニング条件</div>
+    <div class="filter-grid">
+      <div class="filter-item">
+        <label>PER 上限</label>
+        <select id="fPER">
+          <option value="999">制限なし</option>
+          <option value="15" selected>15倍以下</option>
+          <option value="20">20倍以下</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>PBR 上限</label>
+        <select id="fPBR">
+          <option value="999">制限なし</option>
+          <option value="2">2倍以下</option>
+          <option value="3" selected>3倍以下</option>
+          <option value="5">5倍以下</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>ROE 下限</label>
+        <select id="fROE">
+          <option value="0">制限なし</option>
+          <option value="8" selected>8%以上</option>
+          <option value="10">10%以上</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>自己資本比率 下限</label>
+        <select id="fEQ">
+          <option value="0">制限なし</option>
+          <option value="40" selected>40%以上</option>
+          <option value="50">50%以上</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>テーマ</label>
+        <select id="fSector">
+          <option value="">すべて</option>
+          <option value="DC">DC</option>
+          <option value="半導体">半導体</option>
+          <option value="防衛">防衛</option>
+          <option value="電力インフラ">電力インフラ</option>
+          <option value="素材">素材</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>ステータス</label>
+        <select id="fStatus">
+          <option value="">すべて</option>
+          <option value="未注目">未注目</option>
+          <option value="出遅れ">出遅れ</option>
+          <option value="注目済み">注目済み</option>
+          <option value="高騰済み">高騰済み</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-primary" onclick="applyFilter()">🔍 スクリーニング実行</button>
+      <button class="btn btn-outline" onclick="resetFilter()">リセット</button>
+    </div>
+  </div>
+
+  <div class="result-meta">
+    <span id="resultMeta">全 <span class="result-count" id="countSpan">14</span> 銘柄</span>
+    <span style="font-size:11px;color:var(--muted)">タップ → チャート / 戦略</span>
+  </div>
+
+  <div class="cards-grid" id="cardsGrid"></div>
+</div>
+
+<!-- MODAL -->
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="mTitle">—</div>
+        <div class="modal-code" id="mCode">—</div>
+      </div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" onclick="switchModalTab('chart',this)">📈 チャート</button>
+      <button class="modal-tab" onclick="switchModalTab('buy',this)">🟢 買い戦略</button>
+      <button class="modal-tab" onclick="switchModalTab('sell',this)">🔴 売り戦略</button>
+      <button class="modal-tab" onclick="switchModalTab('fund',this)">📋 ファンダ</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// COMPANY DATA
+// ─────────────────────────────────────────────
+const COMPANIES = [
+  { code:"5803", name:"フジクラ",     sector:["DC","電力インフラ"],   pbr:21.5,per:73, roe:18,eq:42, div:0.54,cap:117000,score:1,status:"高騰済み",
+    note:"光ファイバーDC向け世界トップ。株価10年73倍達成。PBR21倍は歴史的高水準で新規参入は高リスク。" },
+  { code:"5801", name:"古河電工",     sector:["DC","電力インフラ"],   pbr:8.2, per:57, roe:14,eq:32, div:0.36,cap:31000, score:2,status:"高騰済み",
+    note:"電線御三家。株価10年22倍。超多心光ファイバー量産開始。PBR8倍で再評価余地は限定的。" },
+  { code:"6501", name:"日立製作所",   sector:["DC","電力インフラ","半導体"],pbr:3.7,per:30,roe:13,eq:57,div:0.96,cap:240000,score:3,status:"注目済み",
+    note:"家電売却＋自社株買い5000億で構造改革。エナジー事業が+65%の爆発成長。財務最良。PBR3.7倍は相対的に合理的。" },
+  { code:"7013", name:"IHI",          sector:["防衛","電力インフラ"], pbr:7.5, per:35, roe:26,eq:22, div:0.7, cap:31000, score:2,status:"注目済み",
+    note:"防衛・民間航空エンジン・原子力で3期連続最高益。ROE26%は高水準。自己資本比率22%と低いのが課題。" },
+  { code:"7011", name:"三菱重工業",   sector:["防衛","電力インフラ","DC"],pbr:5.5,per:28,roe:9,eq:28,div:0.5,cap:60000,score:3,status:"注目済み",
+    note:"防衛・ガスタービン・DC冷却の三刀流。ROE8〜10%で条件合致。PER28倍・自己資本28%が課題。" },
+  { code:"5706", name:"三井金属",     sector:["半導体","DC"],          pbr:2.8, per:18, roe:13,eq:45, div:2.5, cap:8000,  score:7,status:"出遅れ",
+    note:"AI向け極薄銅箔「マイクロシン」世界シェア95%超。半導体パッケージの縁の下の力持ち。AI向け利益を2030年に2倍計画。" },
+  { code:"5805", name:"SWCC",         sector:["電力インフラ","DC"],    pbr:4.5, per:25, roe:14,eq:38, div:1.2, cap:3500,  score:6,status:"出遅れ",
+    note:"旧昭和電線。電力ケーブル専業。フジクラ・古河に比べ注目度が低い電線株。電力インフラ投資増の波に乗る中堅プレイヤー。" },
+  { code:"4004", name:"レゾナック",   sector:["半導体","DC"],          pbr:2.2, per:20, roe:8, eq:35, div:1.8, cap:12000, score:7,status:"出遅れ",
+    note:"旧昭和電工。半導体パッケージ材料・CMP材料で世界トップ。DRAM・HBM向け需要急増中。構造改革で利益体質改善中。" },
+  { code:"5471", name:"大同特殊鋼",   sector:["防衛","半導体"],        pbr:1.8, per:12, roe:9, eq:42, div:2.8, cap:5000,  score:8,status:"未注目",
+    note:"防衛・航空機エンジン向け特殊鋼メーカー。IHI・三菱重工への納入実績。防衛費増額の波及先。PBR1.8倍と割安。" },
+  { code:"5333", name:"日本ガイシ",   sector:["電力インフラ"],         pbr:2.3, per:15, roe:9, eq:55, div:2.2, cap:9500,  score:7,status:"出遅れ",
+    note:"電力インフラ向け碍子・絶縁体で世界首位。電力網強化の直接受益者。財務鉄壁（自己資本55%）。PER15倍以下で条件合致。" },
+  { code:"5713", name:"住友金属鉱山", sector:["電力インフラ","素材"],  pbr:2.5, per:16, roe:10,eq:52, div:2.5, cap:19000, score:6,status:"出遅れ",
+    note:"銅・ニッケル保有。DC需要で銅価格上昇の直接メリット享受。ROE10%・自己資本52%で財務健全。高配当でインカム投資にも対応。" },
+  { code:"6706", name:"電気興業",     sector:["防衛","電力インフラ"],  pbr:1.5, per:11, roe:8, eq:62, div:2.5, cap:1200,  score:9,status:"未注目",
+    note:"防衛・通信インフラのニッチプレイヤー。自衛隊向けアンテナ・レーダー装置。PBR1.5倍・PER11倍と超割安。自己資本62%で財務鉄壁。" },
+  { code:"5393", name:"ニチアス",     sector:["DC","電力インフラ","半導体"],pbr:2.0,per:14,roe:10,eq:58,div:2.0,cap:3500,score:8,status:"未注目",
+    note:"断熱材・耐熱材料の専門メーカー。DC向け耐火断熱材・半導体製造装置向け素材・電力インフラ絶縁材を供給。3テーマ全てに絡む縁の下の力持ち。" },
+  { code:"1813", name:"戸田建設",     sector:["DC"],                   pbr:1.3, per:10, roe:8, eq:45, div:2.8, cap:4500,  score:8,status:"未注目",
+    note:"DC専門建設会社として急成長。グリーンDC事業を強化中。PBR1.3倍・PER10倍と格安。建設バリュー株がDCテーマを獲得した希少ケース。" },
+];
+
+const SEC_CLASS = {
+  'DC':'sec-DC','半導体':'sec-半導体','防衛':'sec-防衛',
+  '電力インフラ':'sec-電力','素材':'sec-素材'
+};
+const ST_CLASS = {
+  '未注目':'st-未注目','出遅れ':'st-出遅れ','注目済み':'st-注目済',
+  '高騰済み':'st-高騰済'
+};
+
+// screen criteria pass/fail
+function passes(c) {
+  const per  = parseFloat(document.getElementById('fPER').value);
+  const pbr  = parseFloat(document.getElementById('fPBR').value);
+  const roe  = parseFloat(document.getElementById('fROE').value);
+  const eq   = parseFloat(document.getElementById('fEQ').value);
+  const sec  = document.getElementById('fSector').value;
+  const stat = document.getElementById('fStatus').value;
+  if (c.per > per) return false;
+  if (c.pbr > pbr) return false;
+  if (c.roe < roe) return false;
+  if (c.eq  < eq)  return false;
+  if (sec  && !c.sector.includes(sec)) return false;
+  if (stat && c.status !== stat) return false;
+  return true;
+}
+
+function scoreColor(v){
+  if(v>=8) return 'var(--accent)';
+  if(v>=6) return 'var(--green)';
+  if(v>=4) return 'var(--yellow)';
+  return 'var(--red)';
+}
+function perColor(v){ return v<=15?'var(--green)':v<=19?'var(--yellow)':'var(--red)'; }
+function pbrColor(v){ return v<=2?'var(--green)':v<=3?'var(--yellow)':'var(--red)'; }
+function roeColor(v){ return v>=10?'var(--green)':v>=8?'var(--yellow)':'var(--red)'; }
+function eqColor(v) { return v>=50?'var(--green)':v>=40?'var(--yellow)':'var(--red)'; }
+
+function renderCards(list) {
+  const grid = document.getElementById('cardsGrid');
+  document.getElementById('countSpan').textContent = list.length;
+  grid.innerHTML = list.map(c => {
+    const sectors = c.sector.map(s=>`<span class="sector-tag ${SEC_CLASS[s]||''}">${s}</span>`).join('');
+    const ok = passes(c);
+    const borderStyle = ok ? 'border-color:rgba(0,230,118,0.4);' : '';
+    const topLine = ok ? 'background:linear-gradient(90deg,var(--green),var(--accent));' : 'background:var(--border);';
+    return `
+    <div class="scard" style="${borderStyle}" onclick="">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;${topLine}border-radius:12px 12px 0 0;"></div>
+      <div class="scard-top">
+        <div>
+          <div class="scard-name">${c.name}</div>
+          <div class="scard-code">${c.code}</div>
+        </div>
+        <span class="status-badge ${ST_CLASS[c.status]||''}">${c.status}</span>
+      </div>
+      <div class="scard-sectors">${sectors}</div>
+      <div class="scard-metrics">
+        <div class="metric"><div class="metric-label">PER</div><div class="metric-val" style="color:${perColor(c.per)}">${c.per}x</div></div>
+        <div class="metric"><div class="metric-label">PBR</div><div class="metric-val" style="color:${pbrColor(c.pbr)}">${c.pbr}x</div></div>
+        <div class="metric"><div class="metric-label">ROE</div><div class="metric-val" style="color:${roeColor(c.roe)}">${c.roe}%</div></div>
+        <div class="metric"><div class="metric-label">自己資本</div><div class="metric-val" style="color:${eqColor(c.eq)}">${c.eq}%</div></div>
+      </div>
+      <div class="score-row">
+        <div class="score-label">未発掘スコア ${c.score}/10</div>
+        <div class="score-track"><div class="score-fill" style="width:${c.score*10}%;background:${scoreColor(c.score)};"></div></div>
+      </div>
+      <div class="scard-actions">
+        <button class="btn-chart"   onclick="openModal('${c.code}','chart')">📈 チャート</button>
+        <button class="btn-strategy" onclick="openModal('${c.code}','buy')">📋 売買戦略</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function applyFilter() {
+  const list = COMPANIES.filter(passes);
+  renderCards(list);
+  const total = COMPANIES.filter(passes).length;
+  document.getElementById('resultMeta').innerHTML =
+    `スクリーニング結果: <span class="result-count">${total}</span> 銘柄合格`;
+}
+
+function resetFilter() {
+  document.getElementById('fPER').value   = '15';
+  document.getElementById('fPBR').value   = '3';
+  document.getElementById('fROE').value   = '8';
+  document.getElementById('fEQ').value    = '40';
+  document.getElementById('fSector').value = '';
+  document.getElementById('fStatus').value = '';
+  renderCards(COMPANIES);
+  document.getElementById('resultMeta').innerHTML =
+    `全 <span class="result-count">14</span> 銘柄`;
+}
+
+function switchView(v, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  if(v==='watchlist'){
+    document.getElementById('fStatus').value='未注目';
+    applyFilter();
+  } else {
+    resetFilter();
+  }
+}
+
+// ─────────────────────────────────────────────
+// MODAL
+// ─────────────────────────────────────────────
+let currentCode = null;
+let currentTab  = 'chart';
+let chartDataCache = {};
+
+function openModal(code, tab) {
+  currentCode = code;
+  const c = COMPANIES.find(x=>x.code===code);
+  document.getElementById('mTitle').textContent = c.name;
+  document.getElementById('mCode').textContent  = `${c.code} · ${c.sector.join(' / ')}`;
+  document.getElementById('modalOverlay').classList.add('open');
+  switchModalTab(tab, document.querySelector(`.modal-tab:nth-child(${tab==='chart'?1:tab==='buy'?2:tab==='sell'?3:4})`));
+}
+
+function closeModal(e) {
+  if(e.target===document.getElementById('modalOverlay')) closeModalDirect();
+}
+function closeModalDirect() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function switchModalTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.modal-tab').forEach(t=>t.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  else {
+    const tabs=['chart','buy','sell','fund'];
+    const idx = tabs.indexOf(tab);
+    document.querySelectorAll('.modal-tab')[idx]?.classList.add('active');
+  }
+  renderModalContent();
+}
+
+function renderModalContent() {
+  const c = COMPANIES.find(x=>x.code===currentCode);
+  const body = document.getElementById('modalBody');
+
+  if(currentTab==='chart') {
+    body.innerHTML = `
+      <div class="spin-wrap" id="chartSpin"><div class="spinner"></div>データ取得中...</div>
+      <div id="chartContent" style="display:none">
+        <div class="chart-area"><canvas id="mainChart" width="800" height="160"></canvas></div>
+        <div class="hl-wrap" id="hlWrap"></div>
+        <div class="ma-row" id="maRow"></div>
+      </div>
+      <div class="err-box" id="chartErr" style="display:none"></div>`;
+    fetchChartData(c);
+    return;
+  }
+
+  if(currentTab==='buy') {
+    renderBuyStrategy(c, body);
+    return;
+  }
+
+  if(currentTab==='sell') {
+    renderSellStrategy(c, body);
+    return;
+  }
+
+  if(currentTab==='fund') {
+    renderFundamentals(c, body);
+    return;
+  }
+}
+
+// ─────────────────────────────────────────────
+// CHART
+// ─────────────────────────────────────────────
+async function fetchChartData(c) {
+  const cached = chartDataCache[c.code];
+  if(cached) { renderChart(c, cached); return; }
+
+  try {
+    const symbol = c.code + '.T';
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=6mo`;
+    const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxy);
+    if(!res.ok) throw new Error('通信エラー');
+    const json = await res.json();
+    const data = JSON.parse(json.contents);
+    const result = data.chart?.result?.[0];
+    if(!result) throw new Error('データなし');
+
+    const meta = result.meta;
+    const closes = result.indicators.quote[0].close;
+    const timestamps = result.timestamp;
+    const pairs = timestamps.map((t,i)=>({t,c:closes[i]})).filter(p=>p.c!=null);
+    const prices = pairs.map(p=>p.c);
+
+    const current = meta.regularMarketPrice || prices[prices.length-1];
+    const prev    = meta.chartPreviousClose || prices[prices.length-2];
+    const high52  = meta.fiftyTwoWeekHigh || Math.max(...prices);
+    const low52   = meta.fiftyTwoWeekLow  || Math.min(...prices);
+
+    function sma(arr,n){ return arr.length<n?null: arr.slice(-n).reduce((s,v)=>s+v,0)/n; }
+    const d = { prices, current, prev,
+      ma5:sma(prices,5), ma25:sma(prices,25),
+      ma75:sma(prices,75), ma13w:sma(prices,65),
+      high52, low52,
+      hlPct: Math.round((current-low52)/(high52-low52)*100) };
+
+    chartDataCache[c.code] = d;
+    renderChart(c, d);
+  } catch(e) {
+    document.getElementById('chartSpin').style.display = 'none';
+    const err = document.getElementById('chartErr');
+    err.style.display = 'block';
+    err.textContent = '⚠ ' + e.message + ' — データ取得に失敗しました';
+  }
+}
+
+function renderChart(c, d) {
+  document.getElementById('chartSpin').style.display = 'none';
+  document.getElementById('chartContent').style.display = 'block';
+
+  const fmt = v => v ? v.toLocaleString('ja-JP',{maximumFractionDigits:1}) : '—';
+  const diffPct = (cur,ma) => ma ? ((cur/ma-1)*100).toFixed(1) : null;
+  const diffColor = (cur,ma) => cur > ma ? 'var(--green)' : 'var(--red)';
+
+  // MA boxes
+  const maData = [
+    { label:'5日移動平均',  val:d.ma5  },
+    { label:'25日移動平均', val:d.ma25 },
+    { label:'75日移動平均', val:d.ma75 },
+    { label:'13週移動平均', val:d.ma13w },
+  ];
+  document.getElementById('maRow').innerHTML = maData.map(m=>{
+    const dp = m.val ? diffPct(d.current,m.val) : null;
+    const dc = m.val ? diffColor(d.current,m.val) : 'var(--muted)';
+    return `<div class="ma-box">
+      <div>
+        <div class="ma-box-label">${m.label}</div>
+        <div class="ma-box-val" style="color:${dc}">¥${fmt(m.val)}</div>
+      </div>
+      ${dp!==null?`<div class="ma-box-diff" style="color:${dc}">${d.current>m.val?'▲':'▼'}${Math.abs(dp)}%</div>`:''}
+    </div>`;
+  }).join('');
+
+  // HL bar
+  const hlPct = Math.max(0,Math.min(100,d.hlPct));
+  document.getElementById('hlWrap').innerHTML = `
+    <div style="background:var(--surface);border-radius:8px;padding:10px 12px;margin-bottom:12px;">
+      <div class="hl-labels" style="margin-bottom:4px;">
+        <span>年初来安値 ¥${fmt(d.low52)}</span>
+        <span style="color:var(--accent);font-weight:700">現在値 ¥${fmt(d.current)}</span>
+        <span>年初来高値 ¥${fmt(d.high52)}</span>
+      </div>
+      <div class="hl-bar-bg">
+        <div class="hl-bar-fill" style="width:${hlPct}%"></div>
+        <div class="hl-dot-marker" style="left:${hlPct}%"></div>
+      </div>
+      <div class="pos-text">高値・安値レンジの ${hlPct}% 位置</div>
+    </div>`;
+
+  // Draw canvas
+  setTimeout(()=>drawCanvas(d),30);
+}
+
+function drawCanvas(d){
+  const canvas = document.getElementById('mainChart');
+  if(!canvas) return;
+  const dpr = window.devicePixelRatio||1;
+  const W = canvas.offsetWidth;
+  const H = 160;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+
+  const prices = d.prices; const n = prices.length;
+  if(n<2) return;
+  const pad = {t:10,r:10,b:22,l:52};
+  const cw = W-pad.l-pad.r; const ch = H-pad.t-pad.b;
+  const minP = Math.min(...prices)*0.97; const maxP = Math.max(...prices)*1.03;
+  const xS = i=>pad.l+(i/(n-1))*cw;
+  const yS = p=>pad.t+ch-((p-minP)/(maxP-minP))*ch;
+
+  // grid
+  ctx.strokeStyle='rgba(30,45,69,0.7)'; ctx.lineWidth=0.5;
+  for(let i=0;i<=4;i++){
+    const y=pad.t+(i/4)*ch;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+    const v=maxP-(i/4)*(maxP-minP);
+    ctx.fillStyle='rgba(74,96,128,0.8)'; ctx.font='9px monospace';
+    ctx.textAlign='right';
+    ctx.fillText(Math.round(v).toLocaleString(),pad.l-4,y+3);
+  }
+
+  // MA25 dashed
+  if(d.ma25 && prices.length>=25){
+    ctx.strokeStyle='rgba(0,229,255,0.45)'; ctx.lineWidth=1;
+    ctx.setLineDash([4,3]); ctx.beginPath();
+    let st=false;
+    for(let i=24;i<n;i++){
+      const ma=prices.slice(i-24,i+1).reduce((s,v)=>s+v,0)/25;
+      if(!st){ctx.moveTo(xS(i),yS(ma));st=true;}
+      else ctx.lineTo(xS(i),yS(ma));
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // Area fill
+  const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
+  const up = prices[n-1]>=prices[0];
+  grad.addColorStop(0, up?'rgba(0,230,118,0.15)':'rgba(255,61,90,0.12)');
+  grad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=grad; ctx.beginPath();
+  ctx.moveTo(xS(0),yS(prices[0]));
+  prices.forEach((p,i)=>ctx.lineTo(xS(i),yS(p)));
+  ctx.lineTo(xS(n-1),pad.t+ch); ctx.lineTo(xS(0),pad.t+ch);
+  ctx.closePath(); ctx.fill();
+
+  // Line
+  const lc = up?'#00e676':'#ff3d5a';
+  ctx.strokeStyle=lc; ctx.lineWidth=1.8; ctx.beginPath();
+  prices.forEach((p,i)=>{ if(i===0)ctx.moveTo(xS(i),yS(p)); else ctx.lineTo(xS(i),yS(p)); });
+  ctx.stroke();
+
+  // Dot
+  ctx.fillStyle=lc; ctx.beginPath();
+  ctx.arc(xS(n-1),yS(prices[n-1]),4,0,Math.PI*2); ctx.fill();
+}
+
+// ─────────────────────────────────────────────
+// BUY STRATEGY
+// ─────────────────────────────────────────────
+function renderBuyStrategy(c, body) {
+  const d = chartDataCache[c.code];
+
+  // Fundamental signal
+  const perOk = c.per <= 15;
+  const pbrOk = c.pbr <= 2;
+  const roeOk = c.roe >= 8;
+  const eqOk  = c.eq  >= 40;
+  const passCount = [perOk,pbrOk,roeOk,eqOk].filter(Boolean).length;
+
+  let fundSignal, fundBg, fundBorder, fundColor;
+  if(passCount===4){
+    fundSignal='◎ ファンダ全条件合格';
+    fundBg='rgba(0,230,118,0.15)'; fundBorder='rgba(0,230,118,0.4)'; fundColor='var(--green)';
+  } else if(passCount>=3){
+    fundSignal='△ ほぼ合格（'+passCount+'/4）';
+    fundBg='rgba(255,215,64,0.15)'; fundBorder='rgba(255,215,64,0.4)'; fundColor='var(--yellow)';
+  } else {
+    fundSignal='✕ 条件不足（'+passCount+'/4）';
+    fundBg='rgba(255,61,90,0.15)'; fundBorder='rgba(255,61,90,0.3)'; fundColor='var(--red)';
+  }
+  const fundBadge = `<span class="signal-badge" style="background:${fundBg};border:1px solid ${fundBorder};color:${fundColor}">${fundSignal}</span>`;
+
+  // Technical signal from cache
+  let techHtml = '';
+  if(d) {
+    const overheat = d.ma25 && (d.current/d.ma25-1)>0.15;
+    const downtrend = d.ma5 && d.ma25 && d.ma5 < d.ma25*0.98;
+    const fmt = v => v ? v.toLocaleString('ja-JP',{maximumFractionDigits:0}) : '取得中';
+    const slPct = c.code==='6706'||c.code==='5393' ? 0.10 : 0.15;
+    const slLabel = slPct===0.10 ? '-10%（小型株）' : '-15%（標準）';
+
+    let techSignal, techBg, techBorder, techColor;
+    if(overheat){
+      techSignal='⚠ 過熱・押し目待ち';
+      techBg='rgba(255,145,0,0.15)'; techBorder='rgba(255,145,0,0.4)'; techColor='var(--orange)';
+    } else if(downtrend){
+      techSignal='✕ 下降トレンド・見送り';
+      techBg='rgba(255,61,90,0.15)'; techBorder='rgba(255,61,90,0.3)'; techColor='var(--red)';
+    } else {
+      techSignal='◎ 押し目買いチャンス';
+      techBg='rgba(0,229,255,0.12)'; techBorder='rgba(0,229,255,0.3)'; techColor='var(--accent)';
+    }
+    const techBadge = `<span class="signal-badge" style="background:${techBg};border:1px solid ${techBorder};color:${techColor}">${techSignal}</span>`;
+
+    const entry1 = d.ma25 ? Math.round(d.ma25/10)*10 : null;
+    const entry2 = d.ma25 ? Math.round(d.ma25*0.97/10)*10 : null;
+    const sl     = entry1 ? Math.round(entry1*(1-slPct)/10)*10 : null;
+    const tp     = entry1 ? Math.round(entry1*1.20/10)*10 : null;
+
+    const rows = [
+      entry1 ? `<tr><td><span class="etag etag-buy">攻め指値</span></td><td style="font-family:JetBrains Mono,monospace;font-weight:700">¥${entry1.toLocaleString()}</td><td style="color:var(--muted);font-size:11px">25日MA付近</td></tr>` : '',
+      entry2 ? `<tr><td><span class="etag etag-buy">守り指値</span></td><td style="font-family:JetBrains Mono,monospace;font-weight:700">¥${entry2.toLocaleString()}</td><td style="color:var(--muted);font-size:11px">25日MAの3%下・強サポート</td></tr>` : '',
+      sl     ? `<tr><td><span class="etag etag-stop">逆指値(SL)</span></td><td style="font-family:JetBrains Mono,monospace;font-weight:700;color:var(--red)">¥${sl.toLocaleString()}</td><td style="color:var(--muted);font-size:11px">エントリーから${slLabel}</td></tr>` : '',
+      tp     ? `<tr><td><span class="etag etag-sell">利確目標</span></td><td style="font-family:JetBrains Mono,monospace;font-weight:700;color:var(--green)">¥${tp.toLocaleString()}</td><td style="color:var(--muted);font-size:11px">+20% or PER20倍到達時</td></tr>` : '',
+    ].filter(Boolean).join('');
+
+    techHtml = `
+    <div class="strategy-section">
+      <h3>■ テクニカル判断</h3>
+      ${techBadge}
+      <table class="entry-table">
+        <thead><tr><th>種別</th><th>価格</th><th>根拠</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  } else {
+    techHtml = `
+    <div class="strategy-section">
+      <h3>■ テクニカル判断</h3>
+      <div style="font-size:12px;color:var(--muted)">先に「チャート」タブを開くと指値が自動計算されます</div>
+    </div>`;
+  }
+
+  body.innerHTML = `
+  <div class="strategy-section">
+    <h3>■ ファンダメンタル評価</h3>
+    ${fundBadge}
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px;">
+      ${[['PER','per',c.per+'倍',perOk,'15倍以下'],['PBR','pbr',c.pbr+'倍',pbrOk,'2倍以下'],
+         ['ROE','roe',c.roe+'%',roeOk,'8%以上'],['自己資本','eq',c.eq+'%',eqOk,'40%以上']]
+        .map(([lbl,,val,ok,crit])=>`
+        <div style="background:var(--surface);border-radius:6px;padding:8px 10px;border:1px solid ${ok?'rgba(0,230,118,0.3)':'rgba(255,61,90,0.25)'}">
+          <div style="font-size:9px;color:var(--muted)">${lbl}（基準: ${crit}）</div>
+          <div style="font-family:JetBrains Mono,monospace;font-size:14px;font-weight:700;color:${ok?'var(--green)':'var(--red)'}">${val} ${ok?'✓':'✗'}</div>
+        </div>`).join('')}
+    </div>
+  </div>
+  ${techHtml}
+  <div class="strategy-section">
+    <h3>■ 買いのシナリオ</h3>
+    <div class="note-box">${c.note}</div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
+// SELL STRATEGY
+// ─────────────────────────────────────────────
+function renderSellStrategy(c, body) {
+  const d = chartDataCache[c.code];
+  const fmt = v => v ? v.toLocaleString('ja-JP',{maximumFractionDigits:0}) : '—';
+
+  // Calc sell targets
+  const currentPrice = d ? d.current : null;
+  const slPct = c.code==='6706'||c.code==='5393' ? 0.10 : 0.15;
+  const entry = d?.ma25 ? Math.round(d.ma25/10)*10 : currentPrice;
+  const sl    = entry ? Math.round(entry*(1-slPct)/10)*10 : null;
+  const tp1   = entry ? Math.round(entry*1.15/10)*10 : null;  // +15%
+  const tp2   = entry ? Math.round(entry*1.20/10)*10 : null;  // +20%
+  const tp3   = entry ? Math.round(entry*1.30/10)*10 : null;  // +30%
+
+  // PER20倍の株価
+  const eps = c.per>0 && currentPrice ? currentPrice/c.per : null;
+  const per20price = eps ? Math.round(eps*20/10)*10 : null;
+
+  const rows = [
+    sl    ? `<tr><td><span class="etag etag-stop">損切り（絶対）</span></td><td style="font-family:JetBrains Mono,monospace;font-weight:700;color:var(--red)">¥${fmt(sl)}</td><td style="color:var(--muted);font-size:11px">例外なし・機械的に実行</td></tr>` : '',
+    tp1   ? `<tr><td><span class="etag etag-sell">第1利確（1/3）</span></td><td style="font-family:JetBrains Mono,monospace;font-weight:700;color:var(--green)">¥${fmt(tp1)}</td><td style="color:var(--muted);font-size:11px">+15%到達・保有の1/3を売却</td></tr>` : '',
+    tp2   ? `<tr><td><span class="etag etag-sell">第2利確（1/3）</span></td><td style="font-family:JetBrains Mono,monospace;font-weight:700;color:var(--green)">¥${fmt(tp2)}</td><td style="color:var(--muted);font-size:11px">+20%到達・さらに1/3を売却</td></tr>` : '',
+    per20price ? `<tr><td><span class="etag etag-sell">PER20倍（売りシグナル）</span></td><td style="font-family:JetBrains Mono,monospace;font-weight:700;color:var(--yellow)">¥${fmt(per20price)}</td><td style="color:var(--muted);font-size:11px">スクリーニング基準の売り水準</td></tr>` : '',
+    tp3   ? `<tr><td><span class="etag etag-sell">最終利確（残り）</span></td><td style="font-family:JetBrains Mono,monospace;font-weight:700;color:var(--green)">¥${fmt(tp3)}</td><td style="color:var(--muted);font-size:11px">+30%or 業績悪化シグナルで全売</td></tr>` : '',
+  ].filter(Boolean).join('');
+
+  body.innerHTML = `
+  <div class="strategy-section">
+    <h3>■ 価格ベース 売却プラン</h3>
+    <table class="entry-table">
+      <thead><tr><th>種別</th><th>価格目安</th><th>説明</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">※価格はチャートタブを先に開くと精度が上がります</div>
+  </div>
+
+  <div class="strategy-section">
+    <h3>■ ファンダ系 売りシグナル（ルール）</h3>
+    <div class="sell-reasons">
+      <div class="sell-reason">
+        <span class="sell-icon">🔴</span>
+        <div><strong style="color:var(--red)">PER 20倍超え</strong><br>
+        <span style="color:var(--muted)">あなたのルール「PER20倍以上＝売り」。現在PER${c.per}倍。予想株価¥${fmt(per20price)}で即売。</span></div>
+      </div>
+      <div class="sell-reason">
+        <span class="sell-icon">🔴</span>
+        <div><strong style="color:var(--red)">3期連続減収・減益</strong><br>
+        <span style="color:var(--muted)">業績トレンドが崩れた時点で保有根拠が消える。決算発表日に確認。</span></div>
+      </div>
+      <div class="sell-reason">
+        <span class="sell-icon">🟡</span>
+        <div><strong style="color:var(--yellow)">配当性向 80%超え</strong><br>
+        <span style="color:var(--muted)">成長投資余力の消失シグナル。増配が続かなくなる前兆。</span></div>
+      </div>
+      <div class="sell-reason">
+        <span class="sell-icon">🟡</span>
+        <div><strong style="color:var(--yellow)">25日MAを大幅下抜け（-8%以上）</strong><br>
+        <span style="color:var(--muted)">テクニカルの下降転換シグナル。SL未到達でも一部利確を検討。</span></div>
+      </div>
+      <div class="sell-reason">
+        <span class="sell-icon">🔵</span>
+        <div><strong style="color:var(--accent)">テーマ崩壊ニュース</strong><br>
+        <span style="color:var(--muted)">防衛予算削減・DC投資縮小・電力網計画見直しなどのニュースが出たら即再評価。</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="strategy-section">
+    <h3>■ リバランス・ルール</h3>
+    <div class="note-box" style="border-left-color:var(--accent)">
+      四半期ごとに配分比を確認。±5%超のズレはリバランス対象。<br>
+      電気興業(6706)が-10%到達 → ポートフォリオ全体見直しトリガー。
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
+// FUNDAMENTALS
+// ─────────────────────────────────────────────
+function renderFundamentals(c, body) {
+  const criteria = [
+    { label:'PER', val:c.per+'倍', ok:c.per<=15, crit:'15倍以下', warn:c.per<=20 },
+    { label:'PBR', val:c.pbr+'倍', ok:c.pbr<=2,  crit:'2倍以下', warn:c.pbr<=3 },
+    { label:'ROE', val:c.roe+'%',  ok:c.roe>=8,  crit:'8%以上', warn:c.roe>=6 },
+    { label:'自己資本比率', val:c.eq+'%', ok:c.eq>=40, crit:'40%以上', warn:c.eq>=35 },
+    { label:'配当利回り', val:c.div+'%', ok:c.div>=1.5, crit:'1.5%以上', warn:c.div>=1.0 },
+  ];
+  const allOk = criteria.filter(x=>x.ok).length;
+
+  body.innerHTML = `
+  <div class="strategy-section">
+    <h3>■ スクリーニング条件チェック（${allOk}/${criteria.length}合格）</h3>
+    <div class="fund-grid">
+      ${criteria.map(x=>`
+      <div class="fund-cell" style="border:1px solid ${x.ok?'rgba(0,230,118,0.3)':x.warn?'rgba(255,215,64,0.3)':'rgba(255,61,90,0.25)'}">
+        <div class="fund-cell-label">${x.label}<br><span style="font-size:9px;color:var(--muted)">基準:${x.crit}</span></div>
+        <div class="fund-cell-val" style="color:${x.ok?'var(--green)':x.warn?'var(--yellow)':'var(--red)'}">${x.val}</div>
+        <div style="font-size:12px">${x.ok?'✓ 合格':x.warn?'△ 注意':'✗ 不合格'}</div>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <div class="strategy-section">
+    <h3>■ 銘柄メモ</h3>
+    <div class="note-box">${c.note}</div>
+  </div>
+
+  <div class="strategy-section">
+    <h3>■ テーマ・ステータス</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+      ${c.sector.map(s=>`<span class="sector-tag ${SEC_CLASS[s]||''}" style="padding:4px 10px;font-size:12px">${s}</span>`).join('')}
+      <span class="status-badge ${ST_CLASS[c.status]||''}" style="padding:4px 12px;font-size:12px">${c.status}</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted)">
+      未発掘スコア: <strong style="color:${scoreColor(c.score)}">${c.score}/10</strong>
+      　時価総額: <strong style="color:var(--text)">${(c.cap/10000).toFixed(1)}兆円</strong>
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+renderCards(COMPANIES);
+</script>
+
+</body>
+</html>
