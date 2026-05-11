@@ -386,15 +386,11 @@ function showTab(n){
  
 // ── TRADINGVIEW CHART ──
 function renderTVChart(c){
-  var tvSymbol = 'TYO:'+c.code;
+  var tvSymbol = 'TSE:'+c.code;
+  var encoded = encodeURIComponent(JSON.stringify({symbol:tvSymbol,interval:'D',timezone:'Asia/Tokyo',theme:'dark',style:'1',locale:'ja',allow_symbol_change:true,studies:['STD;MA','STD;MA'],height:420}));
   return '<div class="tv-wrap">'
-    +'<iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tv_chart&symbol='+tvSymbol
-    +'&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=0d1220'
-    +'&studies=%5B%22MASimple%4025%22%2C%22MASimple%4075%22%5D'
-    +'&theme=dark&style=1&timezone=Asia%2FTokyo&withdateranges=1&showpopupbutton=1'
-    +'&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D'
-    +'&disabled_features=%5B%5D&locale=ja&utm_source=localhost" '
-    +'width="100%" height="420" allowtransparency="true" frameborder="0" scrolling="no" allowfullscreen></iframe>'
+    +'<iframe src="https://s.tradingview.com/embed-widget/advanced-chart/?locale=ja#'+"'" + encoded + "'" +'" '
+    +'width="100%" height="420" frameborder="0" allowtransparency="true" scrolling="no" allowfullscreen></iframe>'
     +'</div>'
     +'<div class="report-card">'
     +'<div class="report-title">■ チャートの見方（あなたのルール）</div>'
