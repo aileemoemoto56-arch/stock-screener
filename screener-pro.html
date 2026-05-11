@@ -434,44 +434,39 @@ function fetchAndRenderReport(c){
     renderEntryReport(c, PRICE_CACHE[c.code]);
     return;
   }
-  var symbol = c.code+'.T';
-  var baseUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/'+symbol+'?interval=1d&range=3mo';
-  var proxies = [
-    'https://corsproxy.io/?'+encodeURIComponent(baseUrl),
-    'https://api.allorigins.win/get?url='+encodeURIComponent(baseUrl),
-    'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(baseUrl),
-  ];
-
-  function tryProxy(idx){
-    if(idx >= proxies.length){ renderEntryReport(c, null); return; }
-    fetch(proxies[idx])
-      .then(function(r){ return r.json(); })
-      .then(function(j){
-        // corsproxy.io returns direct JSON, allorigins wraps in .contents
-        var data = j.contents ? JSON.parse(j.contents) : j;
-        var result = data.chart && data.chart.result && data.chart.result[0];
-        if(!result) throw new Error('no result');
-        var closes = result.indicators.quote[0].close;
-        var meta = result.meta;
-        var prices = closes.filter(function(v){ return v!=null; });
-        var current = meta.regularMarketPrice || prices[prices.length-1];
-        var prev = meta.chartPreviousClose || prices[prices.length-2];
-        function sma(arr,n){ if(arr.length<n) return null; return arr.slice(-n).reduce(function(s,v){return s+v;},0)/n; }
-        var d = {
-          current: current, prev: prev,
-          change: current-prev,
-          changePct: ((current-prev)/prev*100),
-          ma5: sma(prices,5), ma25: sma(prices,25), ma75: sma(prices,75),
-          high52: meta.fiftyTwoWeekHigh || Math.max.apply(null,prices),
-          low52:  meta.fiftyTwoWeekLow  || Math.min.apply(null,prices),
-        };
-        PRICE_CACHE[c.code] = d;
-        renderEntryReport(c, d);
-      })
-      .catch(function(){ tryProxy(idx+1); });
-  }
-  tryProxy(0);
+  var done = false;
+  function fallback(){ if(!done){ done=true; renderEntryReport(c, null); } }
+  var timer = setTimeout(fallback, 6000);
+  var stooqUrl = 'https://stooq.com/q/d/l/?s='+c.code+'.jp&i=d&l=100';
+  fetch(stooqUrl, {mode:'cors'})
+    .then(function(r){
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.text();
+    })
+    .then(function(csv){
+      clearTimeout(timer);
+      if(done) return;
+      done = true;
+      var lines = csv.trim().split(String.fromCharCode(10));
+      if(lines.length < 6) throw new Error('short');
+      var prices = [];
+      for(var i=1;i<lines.length;i++){
+        var cols = lines[i].split(',');
+        if(cols.length>=5){ var cl=parseFloat(cols[4]); if(!isNaN(cl)) prices.push(cl); }
+      }
+      if(prices.length < 5){ renderEntryReport(c,null); return; }
+      var cur = prices[prices.length-1];
+      var prv = prices[prices.length-2];
+      function sma(a,n){ if(a.length<n) return null; return a.slice(-n).reduce(function(s,v){return s+v;},0)/n; }
+      var d = { current:cur, prev:prv, change:cur-prv, changePct:((cur-prv)/prv*100),
+        ma5:sma(prices,5), ma25:sma(prices,25), ma75:sma(prices,75),
+        high52:Math.max.apply(null,prices.slice(-252)), low52:Math.min.apply(null,prices.slice(-252)) };
+      PRICE_CACHE[c.code] = d;
+      renderEntryReport(c, d);
+    })
+    .catch(function(){ clearTimeout(timer); fallback(); });
 }
+
 
 // ── ENTRY REPORT ──
 function renderEntryReport(c, pd){
