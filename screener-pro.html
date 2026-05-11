@@ -6,7 +6,7 @@
 <title>日本株スクリーナー Pro</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
- 
+
 :root {
   --bg:#060810; --surface:#0d1220; --card:#111827; --border:#1e2d45;
   --accent:#00e5ff; --green:#00e676; --red:#ff3d5a;
@@ -18,7 +18,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-seri
 body::before{content:'';position:fixed;inset:0;
   background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);
   background-size:44px 44px;pointer-events:none;z-index:0;}
- 
+
 /* HEADER */
 .hdr{position:sticky;top:0;z-index:100;background:rgba(6,8,16,.95);backdrop-filter:blur(12px);
   border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
@@ -28,9 +28,9 @@ body::before{content:'';position:fixed;inset:0;
 .tab{background:transparent;border:1px solid var(--border);color:var(--muted);
   border-radius:6px;padding:5px 10px;font-size:11px;font-family:'Noto Sans JP',sans-serif;cursor:pointer;transition:all .15s;}
 .tab.on{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700;}
- 
+
 .wrap{max-width:960px;margin:0 auto;padding:16px 12px;position:relative;z-index:1;}
- 
+
 /* FILTER */
 .fbar{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;}
 .ftitle{font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:10px;}
@@ -47,11 +47,11 @@ body::before{content:'';position:fixed;inset:0;
 .btn-p:hover{background:#33eaff;}
 .btn-o{background:transparent;border:1px solid var(--border);color:var(--muted);}
 .btn-o:hover{border-color:var(--accent);color:var(--accent);}
- 
+
 .meta{display:flex;justify-content:space-between;align-items:center;
   margin-bottom:10px;font-size:11px;color:var(--muted);}
 .cnt{color:var(--accent);font-weight:700;font-size:13px;}
- 
+
 /* CARDS */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;}
 .card{background:var(--card);border:1px solid var(--border);border-radius:10px;
@@ -78,7 +78,7 @@ body::before{content:'';position:fixed;inset:0;
 .cbtn-c{background:rgba(0,229,255,.1);border-color:rgba(0,229,255,.3);color:var(--accent);}
 .cbtn-s{background:rgba(0,230,118,.1);border-color:rgba(0,230,118,.3);color:var(--green);}
 .cbtn-r{background:rgba(255,145,0,.1);border-color:rgba(255,145,0,.3);color:var(--orange);}
- 
+
 /* MODAL */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:200;
   display:none;align-items:flex-start;justify-content:center;padding:12px;overflow-y:auto;}
@@ -98,25 +98,25 @@ body::before{content:'';position:fixed;inset:0;
   font-family:'Noto Sans JP',sans-serif;border-bottom:2px solid transparent;transition:all .15s;}
 .mtab.on{color:var(--accent);border-bottom-color:var(--accent);}
 .mbody{padding:16px;}
- 
+
 /* TRADINGVIEW CHART */
 .tv-wrap{background:var(--surface);border-radius:8px;overflow:hidden;margin-bottom:12px;}
 .tv-wrap iframe{display:block;width:100%;border:none;}
- 
+
 /* ENTRY REPORT */
 .report-card{background:var(--surface);border-radius:10px;padding:14px;margin-bottom:12px;}
 .report-title{font-size:11px;letter-spacing:2px;color:var(--muted);margin-bottom:10px;
   padding-bottom:6px;border-bottom:1px solid var(--border);}
- 
+
 /* Big signal */
 .big-signal{border-radius:12px;padding:14px 18px;margin-bottom:12px;text-align:center;}
 .big-signal-label{font-size:18px;font-weight:700;margin-bottom:4px;}
 .big-signal-sub{font-size:12px;opacity:.8;}
- 
+
 /* Order type badge */
 .order-type{display:inline-flex;align-items:center;gap:8px;
   border-radius:8px;padding:10px 16px;font-size:14px;font-weight:700;margin-bottom:10px;}
- 
+
 /* Price table */
 .ptable{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;}
 .ptable th{text-align:left;padding:6px 10px;background:rgba(0,0,0,.3);
@@ -128,26 +128,26 @@ body::before{content:'';position:fixed;inset:0;
 .pt-sell{background:rgba(0,230,118,.15);color:var(--green);}
 .pt-stop{background:rgba(255,61,90,.15);color:var(--red);}
 .pt-wait{background:rgba(255,215,64,.15);color:var(--yellow);}
- 
+
 /* Checklist */
 .checklist{display:flex;flex-direction:column;gap:6px;}
 .chk-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;
   background:rgba(0,0,0,.2);border-radius:6px;font-size:11px;line-height:1.5;}
 .chk-icon{font-size:14px;flex-shrink:0;margin-top:1px;}
- 
+
 /* Sell reasons */
 .sell-item{background:rgba(0,0,0,.2);border-radius:6px;padding:9px 11px;
   font-size:11px;display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;line-height:1.6;}
- 
+
 /* Fund boxes */
 .fgrid2{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px;}
 .fbox{background:rgba(0,0,0,.25);border-radius:6px;padding:8px 10px;border:1px solid;}
 .fbox-l{font-size:9px;color:var(--muted);}
 .fbox-v{font-size:14px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-top:2px;}
- 
+
 .note{background:rgba(0,0,0,.2);border-radius:7px;padding:11px 12px;
   font-size:12px;color:#99aabb;line-height:1.7;border-left:3px solid var(--border);}
- 
+
 /* Progress bar for "position in range" */
 .range-wrap{margin-bottom:12px;}
 .range-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px;}
@@ -156,13 +156,13 @@ body::before{content:'';position:fixed;inset:0;
 .range-dot{position:absolute;top:50%;transform:translate(-50%,-50%);
   width:14px;height:14px;background:var(--yellow);border-radius:50%;border:2px solid var(--bg);}
 .range-pct{text-align:center;font-size:11px;color:var(--accent);margin-top:4px;}
- 
+
 /* Print / Share */
 .print-btn{background:rgba(255,145,0,.15);border:1px solid rgba(255,145,0,.3);
   color:var(--orange);border-radius:6px;padding:7px 14px;font-size:11px;
   font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
 .print-btn:hover{background:rgba(255,145,0,.25);}
- 
+
 @media(max-width:480px){
   .fgrid{grid-template-columns:repeat(2,1fr);}
   .grid{grid-template-columns:1fr;}
@@ -172,7 +172,7 @@ body::before{content:'';position:fixed;inset:0;
 </style>
 </head>
 <body>
- 
+
 <div class="hdr">
   <div><div class="hdr-title">📊 Japan Stock Screener Pro</div>
     <div class="hdr-sub">スクリーニング × リアルタイムチャート × エントリーレポート</div></div>
@@ -182,7 +182,7 @@ body::before{content:'';position:fixed;inset:0;
     <button class="tab" onclick="switchView('watch',this)">未注目</button>
   </div>
 </div>
- 
+
 <div class="wrap">
   <div class="fbar">
     <div class="ftitle">■ スクリーニング条件</div>
@@ -211,7 +211,7 @@ body::before{content:'';position:fixed;inset:0;
   </div>
   <div class="grid" id="grid"></div>
 </div>
- 
+
 <!-- MODAL -->
 <div class="overlay" id="ov" onclick="ovClick(event)">
   <div class="modal">
@@ -228,7 +228,7 @@ body::before{content:'';position:fixed;inset:0;
     <div class="mbody" id="mbody"></div>
   </div>
 </div>
- 
+
 <script>
 var COMPANIES = [
   {code:"5803",name:"フジクラ",     sector:["DC","電力インフラ"],            per:73,  pbr:21.5,roe:18,eq:42, div:0.54,cap:117000,score:1,status:"高騰済み",sl:15,
@@ -292,16 +292,16 @@ var COMPANIES = [
    note:"発電用バルブ最大手。原子力・火力向けに強み。原発再稼働で売上+55%・営業利益+232%の爆発成長。",
    theme:"原発再稼働の直接受益銘柄。業績は本物だがPER33倍で条件外。PER15倍水準まで調整待ち。"},
 ];
- 
+
 var SEC_C={'DC':'color:#00d4ff;border-color:#00d4ff44;background:#00d4ff0f','半導体':'color:#b388ff;border-color:#b388ff44;background:#b388ff0f','防衛':'color:#ff9100;border-color:#ff910044;background:#ff91000f','電力インフラ':'color:#00e676;border-color:#00e67644;background:#00e6760f','素材':'color:#ffd740;border-color:#ffd74044;background:#ffd7400f'};
 var ST_C={'未注目':'background:rgba(0,229,255,.15);color:var(--accent)','出遅れ':'background:rgba(0,230,118,.15);color:var(--green)','注目済み':'background:rgba(255,145,0,.15);color:var(--orange)','高騰済み':'background:rgba(255,61,90,.15);color:var(--red)'};
- 
+
 function sc(v){return v>=8?'var(--accent)':v>=6?'var(--green)':v>=4?'var(--yellow)':'var(--red)';}
 function pc(v){return v<=15?'var(--green)':v<=19?'var(--yellow)':'var(--red)';}
 function bc(v){return v<=2?'var(--green)':v<=3?'var(--yellow)':'var(--red)';}
 function rc(v){return v>=10?'var(--green)':v>=8?'var(--yellow)':'var(--red)';}
 function ec(v){return v>=50?'var(--green)':v>=40?'var(--yellow)':'var(--red)';}
- 
+
 function getVal(id,def){var el=document.getElementById(id);return el?el.value:def;}
 function passes(c){
   var per=+(getVal("fPER","999")),pbr=+(getVal("fPBR","999")),
@@ -312,7 +312,7 @@ function passes(c){
   if(st&&c.status!==st) return false;
   return true;
 }
- 
+
 function renderCards(list){
   var g=document.getElementById('grid');
   document.getElementById('cnt').textContent=list.length;
@@ -339,13 +339,13 @@ function renderCards(list){
       +'</div></div>';
   }).join('');
 }
- 
+
 function applyFilter(){
   var list=COMPANIES.filter(passes);
   renderCards(list);
   document.getElementById('metaText').innerHTML='スクリーニング結果: <span class="cnt" id="cnt">'+list.length+'</span> 銘柄合格';
 }
- 
+
 function resetFilter(){
   document.getElementById('fPER').value='15';document.getElementById('fPBR').value='3';
   document.getElementById('fROE').value='8';document.getElementById('fEQ').value='40';
@@ -353,14 +353,14 @@ function resetFilter(){
   renderCards(COMPANIES);
   document.getElementById('metaText').innerHTML='全 <span class="cnt" id="cnt">20</span> 銘柄';
 }
- 
+
 function switchView(v,el){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
   if(el) el.classList.add('on');
   document.getElementById('fStat').value=v==='watch'?'未注目':'';
   if(v==='pass'||v==='watch') applyFilter(); else resetFilter();
 }
- 
+
 // ── MODAL ──
 var curCode=null,curTab=0;
 function openModal(code,tab){
@@ -383,13 +383,15 @@ function showTab(n){
   else if(n===2) body.innerHTML=renderSell(c);
   else body.innerHTML=renderFund(c);
 }
- 
+
 // ── TRADINGVIEW CHART ──
 function renderTVChart(c){
-  var tvSymbol = 'TSE:'+c.code;
-  var encoded = encodeURIComponent(JSON.stringify({symbol:tvSymbol,interval:'D',timezone:'Asia/Tokyo',theme:'dark',style:'1',locale:'ja',allow_symbol_change:true,studies:['STD;MA','STD;MA'],height:420}));
+  var sym = 'TSE%3A'+c.code;
   return '<div class="tv-wrap">'
-    +'<iframe src="https://s.tradingview.com/embed-widget/advanced-chart/?locale=ja#'+"'" + encoded + "'" +'" '
+    +'<iframe src="https://s.tradingview.com/widgetembed/?symbol='+sym
+    +'&interval=D&theme=dark&style=1&locale=ja&timezone=Asia%2FTokyo'
+    +'&hide_side_toolbar=0&allow_symbol_change=1'
+    +'&studies=MASimple%4025%2CMASimple%4075" '
     +'width="100%" height="420" frameborder="0" allowtransparency="true" scrolling="no" allowfullscreen></iframe>'
     +'</div>'
     +'<div class="report-card">'
@@ -403,23 +405,23 @@ function renderTVChart(c){
     +chkItem('❌','デッドクロス状態','売りシグナル。様子見')
     +'</div></div>';
 }
- 
+
 function chkItem(icon,title,sub){
   return '<div class="chk-item"><span class="chk-icon">'+icon+'</span>'
     +'<div><strong style="color:var(--text)">'+title+'</strong>'
     +(sub?'<div style="color:var(--muted);font-size:10px;margin-top:2px">'+sub+'</div>':'')
     +'</div></div>';
 }
- 
+
 // ── ENTRY REPORT ──
 function renderEntryReport(c){
   var perOk=c.per<=15,pbrOk=c.pbr<=2,roeOk=c.roe>=8,eqOk=c.eq>=40;
   var passCount=[perOk,pbrOk,roeOk,eqOk].filter(Boolean).length;
   var slPct=c.sl||15;
- 
+
   // Determine signal based on fundamentals
   var sigLabel,sigBg,sigBorder,sigColor,orderType,orderColor,orderBg,orderBorder,orderDesc,timing;
- 
+
   if(c.per>20){
     sigLabel='❌ 現在は見送り推奨';sigBg='rgba(255,61,90,.12)';sigBorder='rgba(255,61,90,.3)';sigColor='var(--red)';
     orderType='指値なし（待機）';orderColor='var(--red)';orderBg='rgba(255,61,90,.1)';orderBorder='rgba(255,61,90,.3)';
@@ -436,12 +438,12 @@ function renderEntryReport(c){
     orderDesc='一部条件が未達。条件が改善されるまで少額または様子見を推奨。';
     timing='条件が揃い、かつチャートの底打ち反転を確認後';
   }
- 
+
   // Price targets (rough calc based on per/pbr)
   var eps = c.per>0 ? 100/c.per : 0; // normalized
   var per20 = c.per>0 ? Math.round(100/c.per*20) : 0;
   var entryGuide = c.per<=15 ? '25日MA付近' : 'PER15倍水準まで下落後';
- 
+
   var rows=[
     '<tr><td><span class="ptag pt-buy">攻め指値</span></td>'
       +'<td style="font-size:11px;color:var(--text)">25日移動平均線付近</td>'
@@ -459,7 +461,7 @@ function renderEntryReport(c){
       +'<td style="font-size:11px;color:var(--yellow);font-weight:700">現在PER'+c.per+'倍 → 20倍換算</td>'
       +'<td style="font-size:10px;color:var(--muted)">あなたのルール：PER20倍＝売りシグナル</td></tr>',
   ].join('');
- 
+
   var checkItems=[
     ['PER',c.per+'倍',perOk,'15倍以下'],
     ['PBR',c.pbr+'倍',pbrOk,'2倍以下'],
@@ -472,7 +474,7 @@ function renderEntryReport(c){
       +'<div class="fbox-v" style="color:'+(x[2]?'var(--green)':'var(--red)')+'">'+x[1]+' '+(x[2]?'✓':'✗')+'</div>'
       +'</div>';
   }).join('');
- 
+
   // Timing checklist
   var timingChecks=[
     chkItem('📌','エントリータイミング',timing),
@@ -480,32 +482,32 @@ function renderEntryReport(c){
     c.sl===10?chkItem('⚠️','小型株注意','時価総額が小さいため流動性リスクあり。SLは通常より厳格に-10%設定。'):'',
     chkItem('📋','注文手順','① チャートで25日MAの現在値を確認 → ② 指値価格を決定 → ③ 逆指値（SL）を同時設定'),
   ].filter(Boolean).join('');
- 
+
   return '<div class="report-card">'
     +'<div class="report-title">■ ファンダメンタル判定</div>'
     +'<span style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;margin-bottom:10px;background:'+sigBg+';border:1px solid '+sigBorder+';color:'+sigColor+'">'+sigLabel+'</span>'
     +'<div class="fgrid2">'+checkHtml+'</div>'
     +'</div>'
- 
+
     +'<div class="report-card">'
     +'<div class="report-title">■ 注文方法の判断</div>'
     +'<div style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:700;margin-bottom:10px;background:'+orderBg+';border:1px solid '+orderBorder+';color:'+orderColor+'">🎯 '+orderType+'</div>'
     +'<div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">'+orderDesc+'</div>'
     +'<div class="checklist">'+timingChecks+'</div>'
     +'</div>'
- 
+
     +'<div class="report-card">'
     +'<div class="report-title">■ 価格ガイド（チャートで25日MAを確認して埋める）</div>'
     +'<table class="ptable"><thead><tr><th>種別</th><th>価格の目安</th><th>説明</th></tr></thead>'
     +'<tbody>'+rows+'</tbody></table>'
     +'</div>'
- 
+
     +'<div class="report-card">'
     +'<div class="report-title">■ 投資テーマ・シナリオ</div>'
     +'<div class="note">'+c.theme+'</div>'
     +'</div>';
 }
- 
+
 // ── SELL STRATEGY ──
 function renderSell(c){
   var slPct=c.sl||15;
@@ -522,7 +524,7 @@ function renderSell(c){
       +'<div><strong style="color:var(--text)">'+x[1]+'</strong><br>'
       +'<span style="color:var(--muted)">'+x[2]+'</span></div></div>';
   }).join('');
- 
+
   var profit=[
     ['第1利確（1/3）','+15%到達','利益を確定。残り2/3は継続保有'],
     ['第2利確（1/3）','+20%到達','さらに確定。残り1/3はテーマに賭ける'],
@@ -534,13 +536,13 @@ function renderSell(c){
       +'<td style="font-size:11px;color:var(--green);font-weight:700">'+x[1]+'</td>'
       +'<td style="font-size:10px;color:var(--muted)">'+x[2]+'</td></tr>';
   }).join('');
- 
+
   return '<div class="report-card"><div class="report-title">■ 段階的利確プラン</div>'
     +'<table class="ptable"><thead><tr><th>タイミング</th><th>目安</th><th>説明</th></tr></thead>'
     +'<tbody>'+profitHtml+'</tbody></table></div>'
     +'<div class="report-card"><div class="report-title">■ 売りシグナル一覧</div>'+sellHtml+'</div>';
 }
- 
+
 // ── FUNDAMENTALS ──
 function renderFund(c){
   var criteria=[
@@ -566,7 +568,7 @@ function renderFund(c){
     +'<div class="report-card"><div class="report-title">■ 銘柄概要</div>'
     +'<div class="note">'+c.note+'</div></div>';
 }
- 
+
 renderCards(COMPANIES);
 </script>
 </body>
