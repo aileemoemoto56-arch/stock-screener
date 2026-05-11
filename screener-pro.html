@@ -162,6 +162,10 @@ body::before{content:'';position:fixed;inset:0;
   color:var(--orange);border-radius:6px;padding:7px 14px;font-size:11px;
   font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
 .print-btn:hover{background:rgba(255,145,0,.25);}
+.spin-wrap{text-align:center;padding:40px;color:var(--muted);font-size:12px;}
+.spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
 
 @media(max-width:480px){
   .fgrid{grid-template-columns:repeat(2,1fr);}
@@ -293,6 +297,9 @@ var COMPANIES = [
    theme:"原発再稼働の直接受益銘柄。業績は本物だがPER33倍で条件外。PER15倍水準まで調整待ち。"},
 ];
 
+// ── PRICE CACHE ──
+var PRICE_CACHE = {};
+
 var SEC_C={'DC':'color:#00d4ff;border-color:#00d4ff44;background:#00d4ff0f','半導体':'color:#b388ff;border-color:#b388ff44;background:#b388ff0f','防衛':'color:#ff9100;border-color:#ff910044;background:#ff91000f','電力インフラ':'color:#00e676;border-color:#00e67644;background:#00e6760f','素材':'color:#ffd740;border-color:#ffd74044;background:#ffd7400f'};
 var ST_C={'未注目':'background:rgba(0,229,255,.15);color:var(--accent)','出遅れ':'background:rgba(0,230,118,.15);color:var(--green)','注目済み':'background:rgba(255,145,0,.15);color:var(--orange)','高騰済み':'background:rgba(255,61,90,.15);color:var(--red)'};
 
@@ -379,20 +386,28 @@ function showTab(n){
   var c=COMPANIES.filter(function(x){return x.code===curCode;})[0];
   var body=document.getElementById('mbody');
   if(n===0) body.innerHTML=renderTVChart(c);
-  else if(n===1) body.innerHTML=renderEntryReport(c);
+  else if(n===1){ body.innerHTML='<div class="spin-wrap"><div class="spinner"></div>株価データ取得中...</div>'; fetchAndRenderReport(c); }
   else if(n===2) body.innerHTML=renderSell(c);
   else body.innerHTML=renderFund(c);
 }
 
 // ── TRADINGVIEW CHART ──
 function renderTVChart(c){
-  var sym = 'TSE%3A'+c.code;
-  return '<div class="tv-wrap">'
-    +'<iframe src="https://s.tradingview.com/widgetembed/?symbol='+sym
-    +'&interval=D&theme=dark&style=1&locale=ja&timezone=Asia%2FTokyo'
-    +'&hide_side_toolbar=0&allow_symbol_change=1'
-    +'&studies=MASimple%4025%2CMASimple%4075" '
-    +'width="100%" height="420" frameborder="0" allowtransparency="true" scrolling="no" allowfullscreen></iframe>'
+  var tvUrl = 'https://jp.tradingview.com/chart/?symbol=TSE:'+c.code;
+  var minkabuUrl = 'https://minkabu.jp/stock/'+c.code+'/chart';
+  return '<div class="report-card" style="text-align:center;padding:20px">'
+    +'<div style="font-size:12px;color:var(--muted);margin-bottom:16px">外部サイトでリアルタイムチャートを確認</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px;max-width:320px;margin:0 auto">'
+    +'<a href="'+tvUrl+'" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;'
+    +'background:rgba(0,229,255,.12);border:1px solid rgba(0,229,255,.3);color:var(--accent);'
+    +'border-radius:10px;padding:14px 20px;text-decoration:none;font-weight:700;font-size:14px">'
+    +'📈 TradingViewで見る（移動平均線付き）</a>'
+    +'<a href="'+minkabuUrl+'" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;'
+    +'background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.3);color:var(--green);'
+    +'border-radius:10px;padding:14px 20px;text-decoration:none;font-weight:700;font-size:14px">'
+    +'📊 みんかぶで見る（日足・週足）</a>'
+    +'</div>'
+    +'<div style="margin-top:14px;font-size:11px;color:var(--muted)">TSE:'+c.code+' · '+c.name+'</div>'
     +'</div>'
     +'<div class="report-card">'
     +'<div class="report-title">■ チャートの見方（あなたのルール）</div>'
@@ -413,8 +428,48 @@ function chkItem(icon,title,sub){
     +'</div></div>';
 }
 
+// ── FETCH PRICE DATA ──
+function fetchAndRenderReport(c){
+  if(PRICE_CACHE[c.code]){
+    renderEntryReport(c, PRICE_CACHE[c.code]);
+    return;
+  }
+  var symbol = c.code+'.T';
+  var url = 'https://query1.finance.yahoo.com/v8/finance/chart/'+symbol+'?interval=1d&range=3mo';
+  var proxy = 'https://api.allorigins.win/get?url='+encodeURIComponent(url);
+  fetch(proxy)
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var data = JSON.parse(j.contents);
+      var result = data.chart && data.chart.result && data.chart.result[0];
+      if(!result) throw new Error('データなし');
+      var closes = result.indicators.quote[0].close;
+      var meta = result.meta;
+      var prices = closes.filter(function(v){ return v!=null; });
+      var current = meta.regularMarketPrice || prices[prices.length-1];
+      var prev = meta.chartPreviousClose || prices[prices.length-2];
+      function sma(arr,n){ if(arr.length<n) return null; return arr.slice(-n).reduce(function(s,v){return s+v;},0)/n; }
+      var d = {
+        current: current,
+        prev: prev,
+        change: current-prev,
+        changePct: ((current-prev)/prev*100),
+        ma5:  sma(prices,5),
+        ma25: sma(prices,25),
+        ma75: sma(prices,75),
+        high52: meta.fiftyTwoWeekHigh || Math.max.apply(null,prices),
+        low52:  meta.fiftyTwoWeekLow  || Math.min.apply(null,prices),
+      };
+      PRICE_CACHE[c.code] = d;
+      renderEntryReport(c, d);
+    })
+    .catch(function(e){
+      renderEntryReport(c, null);
+    });
+}
+
 // ── ENTRY REPORT ──
-function renderEntryReport(c){
+function renderEntryReport(c, pd){
   var perOk=c.per<=15,pbrOk=c.pbr<=2,roeOk=c.roe>=8,eqOk=c.eq>=40;
   var passCount=[perOk,pbrOk,roeOk,eqOk].filter(Boolean).length;
   var slPct=c.sl||15;
@@ -439,27 +494,74 @@ function renderEntryReport(c){
     timing='条件が揃い、かつチャートの底打ち反転を確認後';
   }
 
-  // Price targets (rough calc based on per/pbr)
-  var eps = c.per>0 ? 100/c.per : 0; // normalized
-  var per20 = c.per>0 ? Math.round(100/c.per*20) : 0;
-  var entryGuide = c.per<=15 ? '25日MA付近' : 'PER15倍水準まで下落後';
+  // ── LIVE PRICE CALCULATIONS ──
+  var fmt = function(v){ return v ? Math.round(v).toLocaleString('ja-JP')+'円' : '—'; };
+  var fmtPct = function(v){ return v ? (v>=0?'+':'')+v.toFixed(1)+'%' : ''; };
+
+  // Current price info
+  var currentHtml = '';
+  var techSignal = '', techBg = '', techBorder = '', techColor = '';
+  var entry1 = null, entry2 = null, sl = null, tp1 = null, tp2 = null, per20price = null;
+
+  if(pd){
+    var cur = pd.current, ma25 = pd.ma25, ma75 = pd.ma75;
+    var chgColor = pd.change>=0?'var(--red)':'var(--accent)';
+    currentHtml = '<div style="background:var(--surface);border-radius:8px;padding:12px 14px;margin-bottom:12px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
+      +'<div><div style="font-size:10px;color:var(--muted)">現在値（リアルタイム）</div>'
+      +'<div style="font-size:22px;font-weight:700;font-family:JetBrains Mono,monospace">'+fmt(cur)+'</div></div>'
+      +'<div style="text-align:right"><div style="font-size:14px;font-weight:700;color:'+chgColor+'">'+fmtPct(pd.changePct)+'</div>'
+      +'<div style="font-size:10px;color:var(--muted)">前日比</div></div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px">'
+      +'<div style="text-align:center"><div style="font-size:9px;color:var(--muted)">5日MA</div>'
+      +'<div style="font-size:12px;font-weight:700;color:'+(cur>pd.ma5?'var(--green)':'var(--red)')+'">'+fmt(pd.ma5)+'</div></div>'
+      +'<div style="text-align:center"><div style="font-size:9px;color:var(--muted)">25日MA</div>'
+      +'<div style="font-size:12px;font-weight:700;color:'+(cur>ma25?'var(--green)':'var(--red)')+'">'+fmt(ma25)+'</div></div>'
+      +'<div style="text-align:center"><div style="font-size:9px;color:var(--muted)">75日MA</div>'
+      +'<div style="font-size:12px;font-weight:700;color:'+(cur>ma75?'var(--green)':'var(--red)')+'">'+fmt(ma75)+'</div></div>'
+      +'</div></div>';
+
+    // Technical signal
+    var overheat = ma25 && (cur/ma25-1)>0.15;
+    var downtrend = pd.ma5 && ma25 && pd.ma5 < ma25*0.98;
+    if(overheat){ techSignal='⚠ 過熱・押し目待ち'; techBg='rgba(255,145,0,.12)'; techBorder='rgba(255,145,0,.4)'; techColor='var(--orange)'; }
+    else if(downtrend){ techSignal='✕ 下降トレンド・慎重に'; techBg='rgba(255,61,90,.12)'; techBorder='rgba(255,61,90,.3)'; techColor='var(--red)'; }
+    else{ techSignal='◎ エントリー検討可'; techBg='rgba(0,230,118,.12)'; techBorder='rgba(0,230,118,.4)'; techColor='var(--green)'; }
+
+    // Price targets from live data
+    if(ma25){
+      entry1 = Math.round(ma25/10)*10;
+      entry2 = Math.round(ma25*0.97/10)*10;
+      sl = Math.round(entry1*(1-slPct/100)/10)*10;
+      tp1 = Math.round(entry1*1.15/10)*10;
+      tp2 = Math.round(entry1*1.20/10)*10;
+    }
+    // PER20 target price
+    if(c.per>0 && cur){
+      per20price = Math.round(cur/c.per*20/10)*10;
+    }
+  }
 
   var rows=[
     '<tr><td><span class="ptag pt-buy">攻め指値</span></td>'
-      +'<td style="font-size:11px;color:var(--text)">25日移動平均線付近</td>'
-      +'<td style="font-size:10px;color:var(--muted)">チャートタブで現在値を確認</td></tr>',
+      +'<td style="font-size:13px;font-weight:700;color:var(--accent)">'+(entry1?fmt(entry1):'25日MA付近')+'</td>'
+      +'<td style="font-size:10px;color:var(--muted)">25日移動平均線付近</td></tr>',
     '<tr><td><span class="ptag pt-buy">守り指値</span></td>'
-      +'<td style="font-size:11px;color:var(--text)">25日MAの3〜5%下</td>'
-      +'<td style="font-size:10px;color:var(--muted)">強いサポートライン水準</td></tr>',
+      +'<td style="font-size:13px;font-weight:700;color:var(--accent)">'+(entry2?fmt(entry2):'25日MAの3%下')+'</td>'
+      +'<td style="font-size:10px;color:var(--muted)">強いサポートライン</td></tr>',
     '<tr><td><span class="ptag pt-stop">逆指値(SL)</span></td>'
-      +'<td style="font-size:11px;color:var(--red);font-weight:700">エントリー価格 × '+(1-slPct/100).toFixed(2)+'</td>'
-      +'<td style="font-size:10px;color:var(--muted)">-'+slPct+'%（'+(slPct===10?'小型株・厳格':'標準')+'）</td></tr>',
+      +'<td style="font-size:13px;font-weight:700;color:var(--red)">'+(sl?fmt(sl):'-'+slPct+'%')+'</td>'
+      +'<td style="font-size:10px;color:var(--muted)">-'+slPct+'%（'+(slPct===10?'小型株':'標準')+'）</td></tr>',
     '<tr><td><span class="ptag pt-sell">第1利確（1/3）</span></td>'
-      +'<td style="font-size:11px;color:var(--green);font-weight:700">エントリー価格 × 1.15</td>'
+      +'<td style="font-size:13px;font-weight:700;color:var(--green)">'+(tp1?fmt(tp1):'+15%')+'</td>'
       +'<td style="font-size:10px;color:var(--muted)">+15%到達で1/3売却</td></tr>',
+    '<tr><td><span class="ptag pt-sell">第2利確（1/3）</span></td>'
+      +'<td style="font-size:13px;font-weight:700;color:var(--green)">'+(tp2?fmt(tp2):'+20%')+'</td>'
+      +'<td style="font-size:10px;color:var(--muted)">+20%到達でさらに1/3売却</td></tr>',
     '<tr><td><span class="ptag pt-sell">PER20倍売り</span></td>'
-      +'<td style="font-size:11px;color:var(--yellow);font-weight:700">現在PER'+c.per+'倍 → 20倍換算</td>'
-      +'<td style="font-size:10px;color:var(--muted)">あなたのルール：PER20倍＝売りシグナル</td></tr>',
+      +'<td style="font-size:13px;font-weight:700;color:var(--yellow)">'+(per20price?fmt(per20price):'PER20倍水準')+'</td>'
+      +'<td style="font-size:10px;color:var(--muted)">PER20倍＝売りシグナル（現在'+c.per+'倍）</td></tr>',
   ].join('');
 
   var checkItems=[
@@ -483,7 +585,12 @@ function renderEntryReport(c){
     chkItem('📋','注文手順','① チャートで25日MAの現在値を確認 → ② 指値価格を決定 → ③ 逆指値（SL）を同時設定'),
   ].filter(Boolean).join('');
 
-  return '<div class="report-card">'
+  return (currentHtml?'<div class="report-card">'
+    +'<div class="report-title">■ 現在値・移動平均（リアルタイム）</div>'
+    +currentHtml
+    +(techSignal?'<span style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:700;background:'+techBg+';border:1px solid '+techBorder+';color:'+techColor+'">テクニカル: '+techSignal+'</span>':'')
+    +'</div>':'')
+    +'<div class="report-card">'
     +'<div class="report-title">■ ファンダメンタル判定</div>'
     +'<span style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;margin-bottom:10px;background:'+sigBg+';border:1px solid '+sigBorder+';color:'+sigColor+'">'+sigLabel+'</span>'
     +'<div class="fgrid2">'+checkHtml+'</div>'
